@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>
+            Login Page
+        </title>
+    </head>
+    <body><!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta http-equiv="X-UA-Compatible" content="IE=edge">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <style>
+                body {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    min-height: 100vh;
+                    flex-direction: column;
+                }
+                h3 {
+                    margin: 1rem;
+                }
+                form {
+                    display: flex;
+                    flex-direction: column;
+                    height: 80%;
+                    border: 1px solid black;
+                    padding: 1rem;
+                }
+                button {
+                    background-color: rgb(90, 68, 36);
+                    border: none;
+                    margin: 1rem;
+                    padding: 1rem;
+                    color: white;
+                    border-radius: 5px;
+                }
+                button:hover{
+                    background-color: rgb(136, 93, 30);
+                }
+                input {
+                    margin: 1rem;
+                    font-size: 1.5rem;
+                    padding: 0.2em;
+                }
+            </style>
+        </head>
+        <body>
+            <h1> {{.FormHeader}} </h1>
+            <form action="" method="POST">
+                <h3>Username</h3>
+                <input type="text" name="username" autocomplete="off"/>
+                <h3>Password</h3>
+                <input type="password" name="password"/>
+                <button>{{.ButtonMessage}}</button>
+            </form>
+        </body>
+        </html>
+    </body>
+</html>
