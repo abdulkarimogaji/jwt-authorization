@@ -1,8 +1,8 @@
-module sqlite3
+module jwtEx
 
 go 1.17
 
-replace github.com/Abdoolkareem/utils => ../utils
+replace github.com/Abdoolkareem/utils => ./utils
 
 require (
 	github.com/Abdoolkareem/utils v0.0.0-00010101000000-000000000000

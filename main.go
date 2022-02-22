@@ -125,16 +125,6 @@ func (db *DB) loginHandler(c *gin.Context) {
 }
 
 func (db *DB) getArticles(c *gin.Context) {
-	user, err := authorizeClient(c)
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"message": "access denied",
-			"status":  "failure",
-			"error":   err.Error(),
-		})
-		return
-	}
-
 	var articles []utils.Article
 	rows, err := db.db.Query("SELECT * FROM articles")
 	if err != nil {
@@ -151,24 +141,14 @@ func (db *DB) getArticles(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": "query successful",
 		"status":  "success",
-		"user":    user,
 		"results": articles,
 	})
 
 }
 
 func (db *DB) createArticle(c *gin.Context) {
-	user, err := authorizeClient(c)
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"message": "access denied",
-			"status":  "failure",
-			"error":   err.Error(),
-		})
-		return
-	}
 	var a utils.Article
-	err = c.BindJSON(&a)
+	err := c.BindJSON(&a)
 	log.Println(a)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -189,7 +169,6 @@ func (db *DB) createArticle(c *gin.Context) {
 			"message": "article created successfully",
 			"status":  "success",
 			"data":    a.Id,
-			"user":    user,
 		})
 	} else {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -198,24 +177,41 @@ func (db *DB) createArticle(c *gin.Context) {
 	}
 }
 
-func authorizeClient(c *gin.Context) (interface{}, error) {
-	tokenString := c.GetHeader("access_token")
-	if tokenString == "" {
-		return nil, fmt.Errorf("access token not provided with request header")
-	}
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method %v", token.Header["alg"])
+func authorizeClient() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		log.Println("This is the middleware")
+		tokenString := c.GetHeader("access_token")
+		if tokenString == "" {
+			c.AbortWithStatusJSON(401, gin.H{
+				"message": "access token not provided in request header",
+				"status":  "failure",
+				"error":   "unauthorized",
+			})
+			return
 		}
-		return secretKey, nil
-	})
-	if err != nil {
-		return nil, err
-	}
-	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-		return claims["username"].(string), nil
-	} else {
-		return nil, fmt.Errorf("invalid token")
+		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, fmt.Errorf("unexpected signing method %v", token.Header["alg"])
+			}
+			return secretKey, nil
+		})
+		if err != nil {
+			c.AbortWithStatusJSON(401, gin.H{
+				"message": "invalid access token",
+				"status":  "failure",
+				"error":   err,
+			})
+			return
+		}
+		if _, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+			c.Next()
+		} else {
+			c.AbortWithStatusJSON(401, gin.H{
+				"message": "invalid access token",
+				"status":  "failure",
+				"error":   err,
+			})
+		}
 	}
 
 }
@@ -237,12 +233,16 @@ func main() {
 	}
 	driver := DB{db: db}
 	r := gin.Default()
+	group := r.Group("/api/v1").Use(authorizeClient())
+	{
+		group.GET("/articles", driver.getArticles)
+		group.POST("/articles", driver.createArticle)
+	}
 	r.LoadHTMLFiles("login.html")
 	r.GET("/login", loginPage)
 	r.POST("/login", driver.loginHandler)
 	r.GET("/signup", signupPage)
 	r.POST("/signup", driver.signupHandler)
-	r.GET("api/v1/articles", driver.getArticles)
-	r.POST("api/v1/articles", driver.createArticle)
+
 	r.Run(":8000")
 }

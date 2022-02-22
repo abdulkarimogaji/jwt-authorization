@@ -12,4 +12,4 @@ ENV PORT 8000
 
 RUN go build
 
-CMD [ "./sqlite3.exe" ]
+CMD [ "./jwtEx.exe" ]
